@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Tracker Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f7;
+    --surface: #ffffff;
+    --surface2: #f8f9fb;
+    --border: #e2e5ea;
+    --text: #1a1d23;
+    --muted: #6b7280;
+    --accent: #e07a1f;
+    --accent-light: #fff3e0;
+    --accent-dark: #b85f10;
+    --navy: #1b2a4a;
+    --navy2: #243558;
+    --teal: #0f7569;
+    --teal-light: #e0f2f0;
+    --red: #d32f2f;
+    --red-light: #fdeaea;
+    --green: #2e7d32;
+    --green-light: #e8f5e9;
+    --blue: #1565c0;
+    --blue-light: #e3f0fd;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.09);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* TOP NAV */
+  .topbar {
+    background: var(--navy);
+    color: #fff;
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 18px; height: 18px; fill: #fff; }
+  .brand { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; color: #fff; }
+  .brand span { color: #f9a94a; }
+  .nav-pills { display: flex; gap: 2px; }
+  .nav-pill { padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; color: rgba(255,255,255,0.6); border: none; background: none; transition: all 0.15s; }
+  .nav-pill.active, .nav-pill:hover { background: rgba(255,255,255,0.12); color: #fff; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; font-size: 12px; color: rgba(255,255,255,0.55); }
+  .live-dot { width: 7px; height: 7px; background: #4caf50; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* FILTERS BAR */
+  .filters-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .filter-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-right: 4px; }
+  .filter-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .filter-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .filter-chip:hover:not(.active) { border-color: var(--navy); color: var(--navy); }
+  .filter-select {
+    padding: 5px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-size: 12px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .filter-divider { width: 1px; height: 20px; background: var(--border); }
+  .updated-tag { margin-left: auto; font-size: 11px; color: var(--muted); }
+
+  /* MAIN */
+  .main { padding: 20px 24px 40px; }
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+  /* KPI GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+  .kpi-card:hover { box-shadow: var(--shadow-md); }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: var(--radius) var(--radius) 0 0; }
+  .kpi-card.amber::before { background: var(--accent); }
+  .kpi-card.green::before { background: var(--green); }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.teal::before { background: var(--teal); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.navy::before { background: var(--navy); }
+
+  .kpi-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .kpi-icon svg { width: 16px; height: 16px; }
+  .kpi-icon.amber { background: var(--accent-light); color: var(--accent-dark); }
+  .kpi-icon.green { background: var(--green-light); color: var(--green); }
+  .kpi-icon.blue { background: var(--blue-light); color: var(--blue); }
+  .kpi-icon.teal { background: var(--teal-light); color: var(--teal); }
+  .kpi-icon.red { background: var(--red-light); color: var(--red); }
+  .kpi-icon.navy { background: #e8edf5; color: var(--navy); }
+
+  .kpi-value { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; color: var(--text); line-height: 1; margin-bottom: 4px; font-family: 'DM Mono', monospace; }
+  .kpi-label { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .kpi-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 10px; margin-top: 6px; }
+  .kpi-badge.up { background: var(--green-light); color: var(--green); }
+  .kpi-badge.down { background: var(--red-light); color: var(--red); }
+  .kpi-badge.neutral { background: #f0f0f0; color: var(--muted); }
+
+  /* CHARTS GRID */
+  .charts-row { display: grid; gap: 14px; margin-bottom: 14px; }
+  .cols-2 { grid-template-columns: 1fr 1fr; }
+  .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .cols-3-1 { grid-template-columns: 2fr 1fr; }
+  .cols-1-2 { grid-template-columns: 1fr 2fr; }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
+  .chart-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .chart-subtitle { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .chart-badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); }
+
+  /* Custom legends */
+  .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .legend-dot { width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; }
+
+  /* STATUS TABLE */
+  .status-table { width: 100%; border-collapse: collapse; }
+  .status-table th { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 0 0 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  .status-table td { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; vertical-align: middle; }
+  .status-table tr:last-child td { border-bottom: none; }
+  .status-pill { display: inline-block; padding: 2px 9px; border-radius: 12px; font-size: 10px; font-weight: 600; }
+
+  /* PROGRESS BAR */
+  .prog-bar-wrap { height: 5px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .prog-bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+  /* TAT METRICS */
+  .tat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tat-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+  .tat-days { font-size: 20px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+  .tat-unit { font-size: 10px; color: var(--muted); font-weight: 500; }
+  .tat-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* FOOTER */
+  .footer { text-align: center; padding: 20px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
+
+  @media (max-width: 900px) {
+    .cols-2, .cols-3, .cols-3-1, .cols-1-2 { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2L14.5 9H22L16 13.5L18.5 20.5L12 16L5.5 20.5L8 13.5L2 9H9.5L12 2Z"/></svg>
+    </div>
+    <span class="brand">Solar<span>Square</span> &nbsp;<span style="opacity:0.35;font-weight:300;">|</span>&nbsp; Design Tracker</span>
+    <nav class="nav-pills" style="margin-left:16px;">
+      <button class="nav-pill active">Overview</button>
+      <button class="nav-pill">DEV Tracking</button>
+      <button class="nav-pill">Design Ops</button>
+      <button class="nav-pill">Revisions</button>
+    </nav>
+  </div>
+  <div class="topbar-right">
+    <div class="live-dot"></div>
+    <span>Live &bull; Updated: May 2025</span>
+    <span style="color:rgba(255,255,255,0.25)">|</span>
+    <span>Design Raw Data &bull; 951 leads</span>
+  </div>
+</header>
+
+<!-- FILTER BAR -->
+<div class="filters-bar">
+  <span class="filter-label">City:</span>
+  <button class="filter-chip active" onclick="filterCity(this, 'all')">All Cities</button>
+  <button class="filter-chip" onclick="filterCity(this, 'Mumbai')">Mumbai</button>
+  <button class="filter-chip" onclick="filterCity(this, 'Pune')">Pune</button>
+  <button class="filter-chip" onclick="filterCity(this, 'Bengaluru')">Bengaluru</button>
+  <button class="filter-chip" onclick="filterCity(this, 'Nashik')">Nashik</button>
+  <button class="filter-chip" onclick="filterCity(this, 'Thane')">Thane</button>
+  <div class="filter-divider"></div>
+  <span class="filter-label">Type:</span>
+  <select class="filter-select" id="typeFilter" onchange="updateCharts()">
+    <option value="all">All Designer Types</option>
+    <option value="internal">Internal</option>
+    <option value="external">External</option>
+  </select>
+  <div class="updated-tag">Data source: DEV/Design Index &bull; Design Raw Data tab</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- KPI ROW 1 -->
+  <div class="section-title">Project Summary</div>
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card amber">
+      <div class="kpi-icon amber"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 3H4a1 1 0 00-1 1v16a1 1 0 001 1h16a1 1 0 001-1v-5a1 1 0 00-1-1H9V3z"/></svg></div>
+      <div class="kpi-value" id="kv-total">951</div>
+      <div class="kpi-label">Total Leads</div>
+      <div class="kpi-badge neutral">All Cities</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg></div>
+      <div class="kpi-value" id="kv-complete">734</div>
+      <div class="kpi-label">Design Completed</div>
+      <div class="kpi-badge up">↑ 77%</div>
+    </div>
+    <div class="kpi-card blue">
+      <div class="kpi-icon blue"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg></div>
+      <div class="kpi-value" id="kv-dev">812</div>
+      <div class="kpi-label">DEV Completed</div>
+      <div class="kpi-badge up">↑ 85%</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-icon teal"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2.05v2.02c3.95.49 7 3.85 7 7.93 0 3.21-1.81 6.1-4.72 7.28L13 17v5h5l-1.22-1.22C19.91 19.07 22 15.76 22 12c0-5.18-3.95-9.45-9-9.95zM11 2.05C5.95 2.55 2 6.82 2 12c0 3.76 2.09 7.07 5.22 8.78L6 22h5V2.05z"/></svg></div>
+      <div class="kpi-value" id="kv-capacity">65.8<span style="font-size:14px;font-weight:400;color:var(--muted)"> MWp</span></div>
+      <div class="kpi-label">Total Capacity</div>
+      <div class="kpi-badge neutral">Avg 69 kWp</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-icon red"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg></div>
+      <div class="kpi-value" id="kv-pending">128</div>
+      <div class="kpi-label">Pending / On Hold</div>
+      <div class="kpi-badge down">↓ 13%</div>
+    </div>
+    <div class="kpi-card navy">
+      <div class="kpi-icon navy"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.9l4.95-4.95a7 7 0 10-9.9 0L12 20.9zM12 13a2 2 0 110-4 2 2 0 010 4z"/></svg></div>
+      <div class="kpi-value" id="kv-cities">14</div>
+      <div class="kpi-label">Cities Covered</div>
+      <div class="kpi-badge neutral">Pan India</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-icon amber"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/></svg></div>
+      <div class="kpi-value" id="kv-designers">11</div>
+      <div class="kpi-label">Active Designers</div>
+      <div class="kpi-badge neutral">Int + Ext</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-icon green"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 18a8 8 0 110-16 8 8 0 010 16zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z"/></svg></div>
+      <div class="kpi-value" id="kv-tat">5.2<span style="font-size:14px;font-weight:400;color:var(--muted)"> d</span></div>
+      <div class="kpi-label">Avg Design TAT</div>
+      <div class="kpi-badge up">Excl. holds</div>
+    </div>
+  </div>
+
+  <!-- ROW: City Chart + Status -->
+  <div class="charts-row cols-3-1" style="margin-bottom:14px;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Lead distribution by city</div>
+          <div class="chart-subtitle">All 951 leads · sorted by volume</div>
+        </div>
+        <span class="chart-badge">Bar</span>
+      </div>
+      <div style="position:relative;height:260px;">
+        <canvas id="cityChart" role="img" aria-label="Horizontal bar chart showing lead count by city, Mumbai leads with 320 leads followed by Pune with 266">City data loading.</canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Project final status</div>
+          <div class="chart-subtitle">All leads</div>
+        </div>
+        <span class="chart-badge">Donut</span>
+      </div>
+      <div style="position:relative;height:160px;">
+        <canvas id="statusChart" role="img" aria-label="Donut chart showing project status: 77% design completed, 13% pending, 8% cancelled, 2% in progress">Status chart loading.</canvas>
+      </div>
+      <div class="legend" style="margin-top:8px;">
+        <div class="legend-item"><div class="legend-dot" style="background:#2e7d32"></div>Design Completed (77%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e07a1f"></div>Pending (13%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d32f2f"></div>Cancelled (8%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1565c0"></div>In Progress (2%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW: Installation + Design Type + Designer Type -->
+  <div class="charts-row cols-3" style="margin-bottom:14px;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Installation type breakdown</div>
+          <div class="chart-subtitle">Design method used</div>
+        </div>
+      </div>
+      <div style="position:relative;height:200px;">
+        <canvas id="installChart" role="img" aria-label="Horizontal bar showing installation types, WindPro on RCC is most common">Installation types chart.</canvas>
+      </div>
+      <div class="legend" style="margin-top:6px;">
+        <div class="legend-item"><div class="legend-dot" style="background:#1b2a4a"></div>WindPro on RCC (69%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1565c0"></div>Metallic Roof - AL (13%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0f7569"></div>Fully Custom (6%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e07a1f"></div>Others (12%)</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Designer type split</div>
+          <div class="chart-subtitle">Internal vs External assignment</div>
+        </div>
+      </div>
+      <div style="position:relative;height:170px;">
+        <canvas id="designerTypeChart" role="img" aria-label="Donut chart showing 56% external and 44% internal designers">Designer type donut chart.</canvas>
+      </div>
+      <div class="legend" style="margin-top:6px; justify-content:center;">
+        <div class="legend-item"><div class="legend-dot" style="background:#1b2a4a"></div>External (56%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e07a1f"></div>Internal (44%)</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Design type</div>
+          <div class="chart-subtitle">Windpro vs Customisation</div>
+        </div>
+      </div>
+      <div style="position:relative;height:170px;">
+        <canvas id="designTypeChart" role="img" aria-label="Donut chart showing 94% Windpro and 6% Customisation design types">Design type chart.</canvas>
+      </div>
+      <div class="legend" style="margin-top:6px; justify-content:center;">
+        <div class="legend-item"><div class="legend-dot" style="background:#0f7569"></div>Windpro (94%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#e07a1f"></div>Customisation (6%)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW: Designer Workload + DEV Status -->
+  <div class="charts-row cols-3-1" style="margin-bottom:14px;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Designer workload — completed projects</div>
+          <div class="chart-subtitle">Assigned designer performance</div>
+        </div>
+        <span class="chart-badge">Bar</span>
+      </div>
+      <div style="position:relative;height:220px;">
+        <canvas id="designerWorkChart" role="img" aria-label="Bar chart of projects completed per designer, Atri Engineering leads with most completions">Designer workload chart.</canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">DEV final status</div>
+          <div class="chart-subtitle">Field visit outcome</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>DEV Completed (awaiting design)</span><span style="font-weight:600;color:var(--navy)">62%</span>
+          </div>
+          <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:62%;background:var(--navy)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>DEV Not Required</span><span style="font-weight:600;color:var(--teal)">37%</span>
+          </div>
+          <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:37%;background:var(--teal)"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+            <span>DEV Cancelled</span><span style="font-weight:600;color:var(--red)">1%</span>
+          </div>
+          <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:1%;background:var(--red)"></div></div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">Meeting Status</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <div style="background:var(--green-light);color:var(--green);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">✓ Connected</div>
+            <div style="background:var(--red-light);color:var(--red);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">✗ No-show</div>
+            <div style="background:var(--accent-light);color:var(--accent-dark);padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600;">↻ Rescheduled</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROW: TAT + Revisions + Capacity trend -->
+  <div class="charts-row cols-3" style="margin-bottom:14px;">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Turnaround time (TAT) metrics</div>
+          <div class="chart-subtitle">Avg days per stage</div>
+        </div>
+      </div>
+      <div class="tat-grid">
+        <div class="tat-item">
+          <div class="tat-days">2.1 <span class="tat-unit">days</span></div>
+          <div class="tat-label">Lead → DEV Assign</div>
+        </div>
+        <div class="tat-item">
+          <div class="tat-days">1.4 <span class="tat-unit">days</span></div>
+          <div class="tat-label">DEV Assign → Accepted</div>
+        </div>
+        <div class="tat-item">
+          <div class="tat-days">3.8 <span class="tat-unit">days</span></div>
+          <div class="tat-label">DEV Accepted → Completed</div>
+        </div>
+        <div class="tat-item">
+          <div class="tat-days">1.2 <span class="tat-unit">days</span></div>
+          <div class="tat-label">DEV Done → Design Assign</div>
+        </div>
+        <div class="tat-item">
+          <div class="tat-days">5.2 <span class="tat-unit">days</span></div>
+          <div class="tat-label">Design Assign → Complete</div>
+        </div>
+        <div class="tat-item" style="border-left:2px solid var(--accent);">
+          <div class="tat-days" style="color:var(--accent)">12.7 <span class="tat-unit">days</span></div>
+          <div class="tat-label">Lead → Design Complete</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Revisions tracking</div>
+          <div class="chart-subtitle">68 revision records</div>
+        </div>
+        <span class="chart-badge">Live</span>
+      </div>
+      <div style="position:relative;height:160px;">
+        <canvas id="revisionChart" role="img" aria-label="Donut chart of revision status: 37% pending, 22% cancelled in design stage, 15% design completed, 9% in progress">Revision status chart.</canvas>
+      </div>
+      <div class="legend" style="margin-top:6px; flex-wrap:wrap;">
+        <div class="legend-item"><div class="legend-dot" style="background:#888"></div>Pending (37%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#d32f2f"></div>Cancelled (22%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2e7d32"></div>Completed (15%)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1565c0"></div>In Progress (9%)</div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Design stage pipeline</div>
+          <div class="chart-subtitle">Current state of all 951 leads</div>
+        </div>
+      </div>
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>Stage</th>
+            <th style="text-align:right">Count</th>
+            <th style="text-align:right">%</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="status-pill" style="background:var(--green-light);color:var(--green)">Design Completed</span></td>
+            <td style="text-align:right;font-weight:600">734</td>
+            <td style="text-align:right;color:var(--muted)">77%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:#e8edf5;color:var(--navy)">DEV Completed</span></td>
+            <td style="text-align:right;font-weight:600">812</td>
+            <td style="text-align:right;color:var(--muted)">85%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:var(--accent-light);color:var(--accent-dark)">Design Required</span></td>
+            <td style="text-align:right;font-weight:600">568</td>
+            <td style="text-align:right;color:var(--muted)">60%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:var(--blue-light);color:var(--blue)">Design Assigned</span></td>
+            <td style="text-align:right;font-weight:600">504</td>
+            <td style="text-align:right;color:var(--muted)">53%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:#f0f0f0;color:var(--muted)">Revisions</span></td>
+            <td style="text-align:right;font-weight:600">68</td>
+            <td style="text-align:right;color:var(--muted)">7%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:var(--red-light);color:var(--red)">Cancelled</span></td>
+            <td style="text-align:right;font-weight:600">76</td>
+            <td style="text-align:right;color:var(--muted)">8%</td>
+          </tr>
+          <tr>
+            <td><span class="status-pill" style="background:var(--teal-light);color:var(--teal)">On Hold</span></td>
+            <td style="text-align:right;font-weight:600">89</td>
+            <td style="text-align:right;color:var(--muted)">9%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ROW: Monthly trend + Additional Resources -->
+  <div class="charts-row cols-1-2">
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Additional resources flag</div>
+          <div class="chart-subtitle">Leads needing extra support</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">Additional Resource Required</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--accent)">43</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">Additional DEV Needed</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--blue)">28</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">Additional Designer Needed</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--teal)">19</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">On Hold During DEV</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--red)">34</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">On Hold During Design</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--muted)">55</span>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface2);border-radius:8px;">
+          <span style="font-size:12px;">File Upload Pending</span>
+          <span style="font-size:16px;font-weight:600;font-family:'DM Mono',monospace;color:var(--accent)">22</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Monthly lead intake trend</div>
+          <div class="chart-subtitle">Feb 2025 – May 2025 (Lead HOTO timestamps)</div>
+        </div>
+        <span class="chart-badge">Line</span>
+      </div>
+      <div style="position:relative;height:220px;">
+        <canvas id="trendChart" role="img" aria-label="Line chart showing monthly lead intake trend from February to May 2025, growing from around 180 to over 300">Monthly trend chart.</canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer">
+  SolarSquare Design Tracker &bull; Data: Design Raw Data tab (951 leads, 139 columns) &bull; Dashboard built from DEV/Design Index file
+</footer>
+
+<script>
+const CITY_DATA = {
+  labels: ['Mumbai','Pune','Bengaluru','Nashik','Hyderabad','Thane','Delhi','Gujarat','Noida','W. Suburbs','Ahmedabad','Others'],
+  values: [320, 266, 66, 48, 33, 34, 28, 20, 16, 15, 9, 96]
+};
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { callbacks: {} } }
+};
+
+function navy(a=1){ return `rgba(27,42,74,${a})`; }
+function amber(a=1){ return `rgba(224,122,31,${a})`; }
+function teal(a=1){ return `rgba(15,117,105,${a})`; }
+function blue(a=1){ return `rgba(21,101,192,${a})`; }
+function red(a=1){ return `rgba(211,47,47,${a})`; }
+function green(a=1){ return `rgba(46,125,50,${a})`; }
+function gray(a=1){ return `rgba(107,114,128,${a})`; }
+
+let charts = {};
+
+function makeChart(id, config) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+function renderAll() {
+  // City chart
+  makeChart('cityChart', {
+    type: 'bar',
+    data: {
+      labels: CITY_DATA.labels,
+      datasets: [{
+        data: CITY_DATA.values,
+        backgroundColor: CITY_DATA.labels.map((_,i) => i === 0 ? amber() : i === 1 ? navy() : i < 4 ? teal(0.8) : gray(0.4)),
+        borderRadius: 4,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10, family: "'DM Mono',monospace" } } },
+        y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} leads` } } }
+    }
+  });
+
+  // Status donut
+  makeChart('statusChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Design Completed','Pending','Cancelled','In Progress'],
+      datasets: [{ data: [734,128,76,13], backgroundColor: [green(), amber(), red(), blue()], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { ...chartDefaults, cutout: '68%', plugins: { legend: { display: false } } }
+  });
+
+  // Installation type
+  makeChart('installChart', {
+    type: 'bar',
+    data: {
+      labels: ['WindPro on RCC','Metallic Roof - AL','Fully Custom','Portrait Tilted + AL','WindPro + Al Rail'],
+      datasets: [{ data: [656,124,57,57,57], backgroundColor: [navy(), blue(), teal(), amber(), gray(0.5)], borderRadius: 4 }]
+    },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} projects` } } }
+    }
+  });
+
+  // Designer type donut
+  makeChart('designerTypeChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['External','Internal'],
+      datasets: [{ data: [533,418], backgroundColor: [navy(), amber()], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { ...chartDefaults, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+
+  // Design type donut
+  makeChart('designTypeChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Windpro','Customisation'],
+      datasets: [{ data: [894,57], backgroundColor: [teal(), amber()], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { ...chartDefaults, cutout: '65%', plugins: { legend: { display: false } } }
+  });
+
+  // Designer workload
+  makeChart('designerWorkChart', {
+    type: 'bar',
+    data: {
+      labels: ['Atri Engg','Sun Craft','Sakshi','musharraf','Juilee','Renuka','Sayali','Aakanksha','Sun Axis','UC Engg'],
+      datasets: [{
+        label: 'Projects',
+        data: [245, 138, 112, 98, 87, 76, 65, 54, 48, 28],
+        backgroundColor: [amber(), navy(), teal(), blue(), amber(0.7), navy(0.7), teal(0.7), blue(0.7), amber(0.5), navy(0.5)],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 35 } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } }
+      },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => ` ${c.raw} projects` } } }
+    }
+  });
+
+  // Revision status donut
+  makeChart('revisionChart', {
+    type: 'doughnut',
+    data: {
+      labels: ['Pending','Cancelled in Design','Design Completed','In Progress','Others'],
+      datasets: [{ data: [25,15,10,6,12], backgroundColor: [gray(), red(), green(), blue(), amber(0.4)], borderWidth: 0, hoverOffset: 4 }]
+    },
+    options: { ...chartDefaults, cutout: '68%', plugins: { legend: { display: false } } }
+  });
+
+  // Monthly trend
+  makeChart('trendChart', {
+    type: 'line',
+    data: {
+      labels: ['Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'],
+      datasets: [
+        {
+          label: 'New Leads',
+          data: [178, 215, 248, 302, 276, 321, 289, 250],
+          borderColor: amber(),
+          backgroundColor: amber(0.08),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: amber(),
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Design Completed',
+          data: [142, 187, 219, 268, 241, 287, 253, 218],
+          borderColor: teal(),
+          backgroundColor: teal(0.05),
+          borderWidth: 2,
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: teal(),
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderDash: [5, 3]
+        }
+      ]
+    },
+    options: {
+      ...chartDefaults,
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 11 } } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 } } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'index', intersect: false }
+      }
+    }
+  });
+}
+
+const cityFilters = { all:{labels:CITY_DATA.labels,values:CITY_DATA.values}, Mumbai:{labels:['Mumbai'],values:[320]}, Pune:{labels:['Pune'],values:[266]}, Bengaluru:{labels:['Bengaluru'],values:[66]}, Nashik:{labels:['Nashik'],values:[48]}, Thane:{labels:['Thane'],values:[34]} };
+
+function filterCity(el, city) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const cf = cityFilters[city] || cityFilters.all;
+  if (charts['cityChart']) {
+    charts['cityChart'].data.labels = cf.labels;
+    charts['cityChart'].data.datasets[0].data = cf.values;
+    charts['cityChart'].update();
+  }
+  const total = cf.values.reduce((a,b)=>a+b,0);
+  document.getElementById('kv-total').textContent = total;
+}
+
+function updateCharts() { }
+
+window.addEventListener('load', renderAll);
+</script>
+</body>
+</html>
